@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historia Médica Asperger/TEA</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Asperger para Asperger® NeuroSalud</h1>
+
+        <!-- Formulario de información personal y médica -->
+        <form id="medicalForm">
+            <h2>Información Personal</h2>
+            <div class="form-group">
+                <label for="name">Nombre:</label>
+                <input type="text" id="name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="dob">Fecha de nacimiento:</label>
+                <input type="date" id="dob" required>
+            </div>
+
+            <div class="form-group">
+                <label for="emergencyContact">Contacto de Emergencia:</label>
+                <input type="tel" id="emergencyContact" placeholder="Teléfono de emergencia" required>
+            </div>
+
+            <h2>Información Médica</h2>
+            <div class="form-group">
+                <label for="diagnosis">Diagnóstico:</label>
+                <textarea id="diagnosis" placeholder="Detalles del diagnóstico"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="medication">Medicamentos:</label>
+                <textarea id="medication" placeholder="Medicamentos actuales y dosis"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="therapies">Terapias:</label>
+                <textarea id="therapies" placeholder="Terapias en curso (ej. ocupacional, del habla, etc.)"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="sensitivities">Sensibilidades:</label>
+                <textarea id="sensitivities" placeholder="Sensibilidades a alimentos, sonidos, luces, etc."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="familyHistory">Historial médico familiar:</label>
+                <textarea id="familyHistory" placeholder="Enfermedades o condiciones hereditarias"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="allergies">Alergias:</label>
+                <textarea id="allergies" placeholder="Alimentos, medicamentos, ambientes, etc."></textarea>
+            </div>
+
+            <h2>Habilidades Sociales y Comunicación</h2>
+            <div class="form-group">
+                <label for="socialSkills">Habilidades sociales:</label>
+                <textarea id="socialSkills" placeholder="Capacidad de interacción social, comportamientos en grupo, etc."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="preferredCommunication">Método de comunicación preferido:</label>
+                <textarea id="preferredCommunication" placeholder="Verbal, no verbal, con dispositivos, etc."></textarea>
+            </div>
+
+            <h2>Seguimiento y Metas</h2>
+            <div class="form-group">
+                <label for="progress">Progreso:</label>
+                <textarea id="progress" placeholder="Notas sobre avances"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="setbacks">Retrocesos:</label>
+                <textarea id="setbacks" placeholder="Notas sobre retrocesos o dificultades recientes"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="shortTermGoals">Metas a corto plazo:</label>
+                <textarea id="shortTermGoals" placeholder="Objetivos o metas a corto plazo"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="longTermGoals">Metas a largo plazo:</label>
+                <textarea id="longTermGoals" placeholder="Objetivos a largo plazo, como estudios o empleo"></textarea>
+            </div>
+
+            <h2>Plan de Manejo de Crisis</h2>
+            <div class="form-group">
+                <label for="crisisPlan">Plan de manejo de crisis:</label>
+                <textarea id="crisisPlan" placeholder="Estrategias para manejar situaciones de crisis o ansiedad"></textarea>
+            </div>
+
+            <h2>Rutina Diaria y Episodios Sensoriales</h2>
+            <div class="form-group">
+                <label for="dailyRoutine">Rutina diaria:</label>
+                <textarea id="dailyRoutine" placeholder="Horario, actividades diarias, rutinas preferidas"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="sensoryEpisodes">Registro de episodios sensoriales:</label>
+                <textarea id="sensoryEpisodes" placeholder="Descripción de episodios sensoriales"></textarea>
+            </div>
+
+            <button type="submit">Guardar Historia Médica</button>
+        </form>
+
+        <button id="clearData">Borrar Datos Guardados</button>
+
+        <div id="savedMessage" class="hidden">¡Datos guardados exitosamente!</div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
