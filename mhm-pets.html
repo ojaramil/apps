@@ -2559,7 +2559,8 @@
                 cloudId: "ID Nube",
                 recover: "Recuperar",
                 cloudSaving: "Guardando en la nube",
-                cloudSaved: "Guardado en la nube",
+                cloudSaved: "En la nube",
+                savedLocally: "Guardado local",
                 cloudError: "Error en la nube",
                 enterCloudId: "Introduce tu ID de Nube anterior"
             },
@@ -2866,6 +2867,7 @@
                 recover: "Recover",
                 cloudSaving: "Saving to cloud",
                 cloudSaved: "Saved to cloud",
+                savedLocally: "Saved locally",
                 cloudError: "Cloud error",
                 enterCloudId: "Enter your previous Cloud ID"
             }
@@ -3309,19 +3311,48 @@
                     return null;
                 }
 
+                // Skip if image is too large (> 4MB in base64)
+                if (base64Image.length > 4 * 1024 * 1024) {
+                    console.warn('☁️ Image too large for cloud upload, using local storage');
+                    return null;
+                }
+
+                console.log('☁️ Uploading image to cloud...');
+
                 try {
+                    // Google Apps Script Web Apps redirect, so we need to handle that
                     const res = await fetch(this.scriptURL, {
                         method: 'POST',
-                        mode: 'cors',
-                        headers: { 'Content-Type': 'text/plain' },
-                        body: JSON.stringify({ action: "uploadImage", image: base64Image })
+                        redirect: 'follow', // Important for Google Apps Script
+                        headers: {
+                            'Content-Type': 'text/plain;charset=utf-8'
+                        },
+                        body: JSON.stringify({
+                            action: "uploadImage",
+                            image: base64Image
+                        })
                     });
-                    const json = await res.json();
-                    return json.status === "success" ? json.url : null;
+
+                    // Try to parse the response
+                    const text = await res.text();
+                    console.log('☁️ Upload response:', text.substring(0, 200));
+
+                    try {
+                        const json = JSON.parse(text);
+                        if (json.status === "success" && json.url) {
+                            console.log('☁️ Image uploaded successfully:', json.url);
+                            return json.url;
+                        } else {
+                            console.warn('☁️ Image upload failed:', json.message || 'Unknown error');
+                            return null;
+                        }
+                    } catch (parseError) {
+                        console.warn('☁️ Could not parse upload response:', parseError);
+                        return null;
+                    }
                 } catch (e) {
-                    console.error('☁️ Image upload error:', e);
-                    const lang = (typeof currentLanguage !== 'undefined') ? currentLanguage : 'es';
-                    alert(lang === 'en' ? "Error uploading photo to cloud." : "Error al subir foto a la nube.");
+                    // Silent fail - don't bother user with alerts
+                    console.warn('☁️ Image upload error (using local storage instead):', e.message);
                     return null;
                 }
             }
@@ -5108,30 +5139,40 @@
                             cameraIcon.style.display = 'none';
                         }
 
-                        // Try to upload to cloud if configured
-                        let finalImageUrl = base64Image;
+                        // Save to pet manager immediately (local storage)
+                        petManager.updatePetPhoto(base64Image);
+                        console.log('📷 Photo saved to local storage');
+
+                        // Try to upload to cloud in background (non-blocking)
                         if (typeof cloudStorage !== 'undefined' && cloudStorage.isReady()) {
-                            try {
-                                // Show uploading indicator
-                                photoContainer.style.opacity = '0.7';
-                                photoBtn.textContent = '☁️ ' + t('uploading') + '...';
+                            // Show uploading indicator
+                            photoContainer.style.opacity = '0.7';
+                            const originalBtnText = photoBtn.textContent;
+                            photoBtn.textContent = '☁️ ' + (t('uploading') || 'Subiendo') + '...';
 
-                                const cloudUrl = await cloudStorage.uploadImage(base64Image);
-                                if (cloudUrl) {
-                                    finalImageUrl = cloudUrl;
-                                    console.log('☁️ Photo uploaded to cloud:', cloudUrl);
-                                }
-                            } catch (err) {
-                                console.warn('☁️ Cloud upload failed, using local image');
-                            } finally {
-                                // Restore UI
+                            // Upload in background - don't await
+                            cloudStorage.uploadImage(base64Image).then(cloudUrl => {
                                 photoContainer.style.opacity = '1';
-                                photoBtn.textContent = t('changePhoto');
-                            }
+                                if (cloudUrl) {
+                                    // Update with cloud URL if successful
+                                    petManager.updatePetPhoto(cloudUrl);
+                                    photoBtn.textContent = '✅ ' + (t('cloudSaved') || 'En la nube');
+                                    setTimeout(() => {
+                                        photoBtn.textContent = t('changePhoto') || 'Cambiar Foto';
+                                    }, 2000);
+                                } else {
+                                    // Cloud failed, but local is saved
+                                    photoBtn.textContent = '📱 ' + (t('savedLocally') || 'Guardado local');
+                                    setTimeout(() => {
+                                        photoBtn.textContent = t('changePhoto') || 'Cambiar Foto';
+                                    }, 2000);
+                                }
+                            }).catch(err => {
+                                photoContainer.style.opacity = '1';
+                                photoBtn.textContent = t('changePhoto') || 'Cambiar Foto';
+                                console.warn('☁️ Cloud upload failed silently');
+                            });
                         }
-
-                        // Save to pet manager
-                        petManager.updatePetPhoto(finalImageUrl);
                     };
 
                     reader.readAsDataURL(file);
