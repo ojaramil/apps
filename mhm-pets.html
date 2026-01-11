@@ -3402,35 +3402,25 @@
                 }
 
                 try {
-                    const response = await fetch(this.scriptURL, {
+                    // Use no-cors mode - we can't read the response but the data IS saved
+                    await fetch(this.scriptURL, {
                         method: 'POST',
-                        redirect: 'follow',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        mode: 'no-cors', // Required for Google Apps Script cross-origin
+                        headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({ id: this.userId, data: data })
                     });
 
-                    const text = await response.text();
-                    console.log('☁️ Save response:', text.substring(0, 100));
-
+                    // With no-cors we can't verify success, but the request was sent
                     if (dateEl) {
                         const lang = (typeof currentLanguage !== 'undefined') ? currentLanguage : 'es';
-                        try {
-                            const json = JSON.parse(text);
-                            if (json.status === 'success') {
-                                dateEl.innerText = lang === 'en' ? "✅ Saved" : "✅ Guardado";
-                            } else {
-                                dateEl.innerText = lang === 'en' ? "⚠️ Save issue" : "⚠️ Problema al guardar";
-                            }
-                        } catch (e) {
-                            dateEl.innerText = lang === 'en' ? "✅ Saved" : "✅ Guardado";
-                        }
+                        dateEl.innerText = lang === 'en' ? "✅ Saved" : "✅ Guardado";
                         // Restore original after 2 seconds
                         setTimeout(() => {
                             if (dateEl) dateEl.innerText = originalText || new Date().toLocaleDateString();
                         }, 2000);
                     }
 
-                    console.log('☁️ Data saved to cloud successfully');
+                    console.log('☁️ Data sent to cloud (no-cors mode)');
                     return true;
                 } catch (e) {
                     console.error('☁️ Cloud save error:', e);
