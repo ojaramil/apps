@@ -3294,13 +3294,40 @@
             // Prompt to recover data from another ID
             promptRecoverData() {
                 const lang = (typeof currentLanguage !== 'undefined') ? currentLanguage : 'es';
-                const promptMsg = lang === 'en' ? "Enter your previous Cloud ID:" : "Introduce tu ID de Nube anterior:";
+                const promptMsg = lang === 'en'
+                    ? "Enter your previous Cloud ID (e.g., MHM-XXXX):"
+                    : "Introduce tu ID de Nube anterior (ej: MHM-XXXX):";
                 const code = prompt(promptMsg, "");
+
                 if (code && code.trim().length > 3) {
-                    try {
-                        localStorage.setItem('mhm_cloud_id', code.trim().toUpperCase());
-                    } catch (e) { }
-                    location.reload();
+                    const newId = code.trim().toUpperCase();
+                    const confirmMsg = lang === 'en'
+                        ? `Recover data for ID: ${newId}?\n\nThis will replace your current local data.`
+                        : `¿Recuperar datos para ID: ${newId}?\n\nEsto reemplazará tus datos locales actuales.`;
+
+                    if (confirm(confirmMsg)) {
+                        try {
+                            // Clear local pet data to force reload from cloud
+                            localStorage.removeItem('mhm-mascota-multi-pets-data');
+                            localStorage.removeItem('mhm-mascota-multi-current-pet-id');
+
+                            // Clear IndexedDB data if possible
+                            if (typeof hybridStorage !== 'undefined') {
+                                hybridStorage.removeItem('mhm-mascota-multi-pets-data');
+                                hybridStorage.removeItem('mhm-mascota-multi-current-pet-id');
+                            }
+
+                            // Set new cloud ID
+                            localStorage.setItem('mhm_cloud_id', newId);
+
+                            console.log('☁️ Switching to cloud ID:', newId);
+                        } catch (e) {
+                            console.error('Error during recovery:', e);
+                        }
+
+                        // Reload page to fetch data from cloud
+                        location.reload();
+                    }
                 }
             }
 
@@ -3364,38 +3391,52 @@
                     return false;
                 }
 
+                console.log('☁️ Saving data to cloud for user:', this.userId);
+
                 // Visual indicator
                 const dateEl = document.getElementById('info-date');
                 const originalText = dateEl ? dateEl.innerText : '';
                 if (dateEl) {
                     const lang = (typeof currentLanguage !== 'undefined') ? currentLanguage : 'es';
-                    dateEl.innerText = lang === 'en' ? "Status: ☁️ Saving..." : "Estado: ☁️ Guardando...";
+                    dateEl.innerText = lang === 'en' ? "☁️ Saving..." : "☁️ Guardando...";
                 }
 
                 try {
-                    await fetch(this.scriptURL, {
+                    const response = await fetch(this.scriptURL, {
                         method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'text/plain' },
+                        redirect: 'follow',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify({ id: this.userId, data: data })
                     });
 
+                    const text = await response.text();
+                    console.log('☁️ Save response:', text.substring(0, 100));
+
                     if (dateEl) {
                         const lang = (typeof currentLanguage !== 'undefined') ? currentLanguage : 'es';
-                        dateEl.innerText = lang === 'en' ? "Status: ✅ Saved" : "Estado: ✅ Guardado";
+                        try {
+                            const json = JSON.parse(text);
+                            if (json.status === 'success') {
+                                dateEl.innerText = lang === 'en' ? "✅ Saved" : "✅ Guardado";
+                            } else {
+                                dateEl.innerText = lang === 'en' ? "⚠️ Save issue" : "⚠️ Problema al guardar";
+                            }
+                        } catch (e) {
+                            dateEl.innerText = lang === 'en' ? "✅ Saved" : "✅ Guardado";
+                        }
                         // Restore original after 2 seconds
                         setTimeout(() => {
-                            if (dateEl) dateEl.innerText = originalText || (lang === 'en' ? new Date().toLocaleDateString('en-US') : new Date().toLocaleDateString('es-ES'));
+                            if (dateEl) dateEl.innerText = originalText || new Date().toLocaleDateString();
                         }, 2000);
                     }
 
-                    console.log('☁️ Data saved to cloud');
+                    console.log('☁️ Data saved to cloud successfully');
                     return true;
                 } catch (e) {
                     console.error('☁️ Cloud save error:', e);
                     if (dateEl) {
                         const lang = (typeof currentLanguage !== 'undefined') ? currentLanguage : 'es';
-                        dateEl.innerText = lang === 'en' ? "Status: ❌ Error" : "Estado: ❌ Error";
+                        dateEl.innerText = lang === 'en' ? "❌ Error" : "❌ Error";
                         setTimeout(() => {
                             if (dateEl) dateEl.innerText = originalText;
                         }, 3000);
@@ -3411,11 +3452,37 @@
                     return null;
                 }
 
+                console.log('☁️ Loading data from cloud for user:', this.userId);
+
                 try {
-                    const res = await fetch(this.scriptURL + "?action=read&id=" + this.userId);
-                    const data = await res.json();
-                    console.log('☁️ Data loaded from cloud');
-                    return data;
+                    const url = this.scriptURL + "?action=read&id=" + encodeURIComponent(this.userId);
+                    console.log('☁️ Load URL:', url);
+
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        redirect: 'follow'
+                    });
+
+                    const text = await response.text();
+                    console.log('☁️ Load response:', text.substring(0, 200));
+
+                    if (!text || text.trim() === '' || text === 'null') {
+                        console.log('☁️ No data found in cloud for this user');
+                        return null;
+                    }
+
+                    try {
+                        const data = JSON.parse(text);
+                        if (data && data.status === 'not_found') {
+                            console.log('☁️ User not found in cloud');
+                            return null;
+                        }
+                        console.log('☁️ Data loaded from cloud successfully');
+                        return data;
+                    } catch (parseError) {
+                        console.warn('☁️ Could not parse cloud data:', parseError);
+                        return null;
+                    }
                 } catch (e) {
                     console.error('☁️ Cloud load error:', e);
                     return null;
